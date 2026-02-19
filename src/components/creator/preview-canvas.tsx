@@ -119,44 +119,35 @@ export function PreviewCanvas({ config, updateConfig }: PreviewCanvasProps) {
       </div>
 
       {/*
-        Export containers: positioned absolute far off-screen (not fixed!),
-        at exact native resolution with no transform scale.
-        html2canvas captures them pixel-perfect.
+        Export containers: position:fixed at top:0,left:0 so html2canvas knows
+        exactly where they are (no scroll offset, no off-screen layout issues).
+        visibility:hidden keeps them invisible to the user.
+        Each format is stacked at the same position — only one gets captured at a time.
       */}
-      <div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: '-99999px',
-          width: 0,
-          height: 0,
-          overflow: 'visible',
-          pointerEvents: 'none',
-          zIndex: -1,
-        }}
-      >
-        {FORMATS.map((format) => {
-          const { width, height } = FORMAT_DIMENSIONS[format]
-          return (
-            <div
-              key={format}
-              id={`export-${format}`}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width,
-                height,
-                overflow: 'hidden',
-                // no transform, no scale — native resolution
-              }}
-            >
-              <PostingGraphic config={{ ...config, format }} forExport={true} />
-            </div>
-          )
-        })}
-      </div>
+      {FORMATS.map((format) => {
+        const { width, height } = FORMAT_DIMENSIONS[format]
+        return (
+          <div
+            key={format}
+            id={`export-${format}`}
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width,
+              height,
+              overflow: 'hidden',
+              visibility: 'hidden',
+              pointerEvents: 'none',
+              zIndex: -9999,
+            }}
+          >
+            <PostingGraphic config={{ ...config, format }} forExport={true} />
+          </div>
+        )
+      })}
+
     </div>
   )
 }

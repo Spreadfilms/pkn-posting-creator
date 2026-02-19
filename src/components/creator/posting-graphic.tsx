@@ -162,7 +162,10 @@ function Pill({ label, config }: { label: string; config: PostingConfig }) {
   const c = config.brandSettings.primaryColor
   return (
     <div style={{
-      display: 'inline-block',
+      display: 'inline-flex',
+      alignSelf: 'flex-start',
+      width: 'fit-content',
+      alignItems: 'center',
       padding: '8px 24px',
       borderRadius: 9999,
       backgroundColor: `${c}33`,
@@ -174,6 +177,7 @@ function Pill({ label, config }: { label: string; config: PostingConfig }) {
         textTransform: 'uppercase',
         letterSpacing: '0.1em',
         color: c,
+        whiteSpace: 'nowrap',
       }}>{label}</span>
     </div>
   )
@@ -186,6 +190,8 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
   return (
     <div style={{
       display: 'inline-flex',
+      alignSelf: 'flex-start',
+      width: 'fit-content',
       alignItems: 'center',
       gap: 12,
       padding: '16px 32px',
@@ -199,9 +205,10 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
       border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
       boxShadow: isPrimary ? `0 10px 40px ${primary}50` : 'none',
       cursor: 'default',
+      whiteSpace: 'nowrap',
     }}>
       {label}
-      <ArrowRight style={{ width: 20, height: 20 }} />
+      <ArrowRight style={{ width: 20, height: 20, flexShrink: 0 }} />
     </div>
   )
 }
@@ -310,7 +317,7 @@ function EventLayout({ config }: { config: PostingConfig }) {
       gap: 40,
       boxSizing: 'border-box',
     }}>
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 24 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 24 }}>
         {config.pillEnabled && <Pill label={config.pillLabel} config={config} />}
 
         <HeadlineText config={config} style={{
@@ -328,12 +335,12 @@ function EventLayout({ config }: { config: PostingConfig }) {
         {config.metaLine && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: config.brandSettings.primaryColor }}>
-              <Calendar style={{ width: 20, height: 20 }} />
+              <Calendar style={{ width: 20, height: 20, flexShrink: 0 }} />
               <span style={{ fontSize: 18 }}>{config.metaLine.split('·')[0]?.trim()}</span>
             </div>
             {config.metaLine.includes('·') && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: config.brandSettings.primaryColor }}>
-                <MapPin style={{ width: 20, height: 20 }} />
+                <MapPin style={{ width: 20, height: 20, flexShrink: 0 }} />
                 <span style={{ fontSize: 18 }}>{config.metaLine.split('·')[1]?.trim()}</span>
               </div>
             )}
@@ -341,7 +348,7 @@ function EventLayout({ config }: { config: PostingConfig }) {
         )}
 
         {config.ctaMode !== 'off' && (
-          <div><CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} /></div>
+          <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
         )}
       </div>
 
@@ -370,14 +377,12 @@ function AnnouncementLayout({ config }: { config: PostingConfig }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', padding: '0 80px', boxSizing: 'border-box' }}>
       <GlassCard style={{ padding, maxWidth: 900 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 32 }}>
           {config.pillEnabled && <Pill label={config.pillLabel} config={config} />}
           <HeadlineText config={config} style={{ fontSize: headlineSize, fontWeight: 800, color: '#ffffff', lineHeight: 1.15, display: 'block' }} />
           <span style={{ fontSize: 36, color: '#d1d5db', lineHeight: 1.4, display: 'block' }}>{config.subline}</span>
           {config.ctaMode !== 'off' && (
-            <div style={{ paddingTop: 16 }}>
-              <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
-            </div>
+            <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
           )}
         </div>
       </GlassCard>
@@ -407,7 +412,7 @@ function QuoteLayout({ config }: { config: PostingConfig }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '0 80px', boxSizing: 'border-box' }}>
       <GlassCard style={{ padding, maxWidth: 900 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 0 }}>
           {config.pillEnabled && (
             <div style={{ marginBottom: 32 }}><Pill label={config.pillLabel} config={config} /></div>
           )}
@@ -488,14 +493,12 @@ function ServiceLayout({ config }: { config: PostingConfig }) {
     <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 64px', gap: 48, boxSizing: 'border-box' }}>
       <div style={{ flex: 1 }}>
         <GlassCard style={{ padding: 56 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 24 }}>
             {config.pillEnabled && <Pill label={config.pillLabel} config={config} />}
             <span style={{ fontSize: 56, fontWeight: 800, color: '#ffffff', lineHeight: 1.2, display: 'block' }}>{config.headline}</span>
             <span style={{ fontSize: 24, color: '#d1d5db', lineHeight: 1.5, display: 'block' }}>{config.subline}</span>
             {config.ctaMode !== 'off' && (
-              <div style={{ paddingTop: 16 }}>
-                <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
-              </div>
+              <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
             )}
           </div>
         </GlassCard>
@@ -521,7 +524,7 @@ function HiringLayout({ config }: { config: PostingConfig }) {
       <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 64px', gap: 48, boxSizing: 'border-box' }}>
         <div style={{ flex: 1 }}>
           <GlassCard style={{ padding: 48 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 24 }}>
               {config.pillEnabled && <Pill label={config.pillLabel} config={config} />}
               <div style={{ width: 64, height: 64, borderRadius: '50%', background: `linear-gradient(135deg, ${primary}, #2563eb)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Users style={{ width: 32, height: 32, color: '#ffffff' }} />
@@ -535,9 +538,7 @@ function HiringLayout({ config }: { config: PostingConfig }) {
                 </div>
               )}
               {config.ctaMode !== 'off' && (
-                <div style={{ paddingTop: 8 }}>
-                  <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
-                </div>
+                <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
               )}
             </div>
           </GlassCard>
@@ -570,9 +571,7 @@ function HiringLayout({ config }: { config: PostingConfig }) {
             </div>
           )}
           {config.ctaMode !== 'off' && (
-            <div style={{ paddingTop: 8 }}>
-              <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
-            </div>
+            <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
           )}
         </div>
       </GlassCard>
@@ -600,14 +599,12 @@ function PresentationLayout({ config }: { config: PostingConfig }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%', padding: '0 80px', boxSizing: 'border-box' }}>
       <GlassCard style={{ padding: 64, maxWidth: 900 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 24 }}>
           {config.pillEnabled && <Pill label={config.pillLabel} config={config} />}
           <HeadlineText config={config} style={{ fontSize: 68, fontWeight: 800, color: '#ffffff', lineHeight: 1.15, display: 'block' }} />
           <span style={{ fontSize: 28, color: '#d1d5db', lineHeight: 1.4, display: 'block' }}>{config.subline}</span>
           {config.ctaMode !== 'off' && (
-            <div style={{ paddingTop: 8 }}>
-              <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
-            </div>
+            <CTAButton label={config.ctaLabel} mode={config.ctaMode} config={config} />
           )}
         </div>
       </GlassCard>

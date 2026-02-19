@@ -19,26 +19,33 @@ async function captureFormat(format: Format): Promise<string> {
   const { default: html2canvas } = await import('html2canvas')
 
   const canvas = await html2canvas(element, {
-    // NO scale — element is already at native resolution (e.g. 1080x1080)
     scale: 1,
-    // Tell html2canvas exactly what the element's logical size is
     width,
     height,
-    // Viewport size must match element so nothing gets clipped or stretched
+    // Match window dimensions exactly to the element so html2canvas
+    // does not apply any viewport-based rescaling or text reflowing
     windowWidth: width,
     windowHeight: height,
+    // Element is at position fixed top:0 left:0 — no scroll offset
+    x: 0,
+    y: 0,
+    scrollX: 0,
+    scrollY: 0,
     backgroundColor: '#0a0118',
     logging: false,
     useCORS: true,
     allowTaint: true,
     imageTimeout: 15000,
-    // Remove oklch colors that html2canvas can't parse
     onclone: (_clonedDoc, clonedEl) => {
-      // Force explicit size on cloned root element
+      // Make the cloned element visible (it's hidden in the live DOM)
+      clonedEl.style.visibility = 'visible'
+      // Lock size so nothing reflows
       clonedEl.style.width = `${width}px`
       clonedEl.style.height = `${height}px`
       clonedEl.style.overflow = 'hidden'
-      clonedEl.style.position = 'relative'
+      clonedEl.style.position = 'fixed'
+      clonedEl.style.top = '0'
+      clonedEl.style.left = '0'
     },
   })
 
