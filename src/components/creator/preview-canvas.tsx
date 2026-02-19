@@ -18,21 +18,25 @@ const FORMAT_LABELS: Record<Format, string> = {
   '9:16': '1080 × 1920 px',
 }
 
+const FORMATS: Format[] = ['1:1', '4:3', '3:4', '16:9', '9:16']
+
 export function PreviewCanvas({ config, updateConfig }: PreviewCanvasProps) {
   const getMainPreviewScale = () => {
     const { width, height } = FORMAT_DIMENSIONS[config.format]
     const maxWidth = 750
-    const maxHeight = 580
+    const maxHeight = 570
     const scaleX = maxWidth / width
     const scaleY = maxHeight / height
     const scale = Math.min(scaleX, scaleY, 1)
-    return { scale, width: width * scale, height: height * scale }
+    return { scale, width: Math.round(width * scale), height: Math.round(height * scale) }
   }
 
-  const getMiniDimensions = (format: Format) => {
-    const scale = 0.08
+  const getMiniScale = (format: Format) => {
     const { width, height } = FORMAT_DIMENSIONS[format]
-    return { width: width * scale, height: height * scale }
+    const maxW = 100
+    const maxH = 100
+    const scale = Math.min(maxW / width, maxH / height)
+    return { scale, width: Math.round(width * scale), height: Math.round(height * scale) }
   }
 
   const mainPreview = getMainPreviewScale()
@@ -47,9 +51,8 @@ export function PreviewCanvas({ config, updateConfig }: PreviewCanvasProps) {
             <p className="text-sm text-gray-400">{FORMAT_LABELS[config.format]}</p>
             <p className="text-xs text-cyan-400 mt-1">✓ Was du siehst = Finales Posting</p>
           </div>
-          {/* Format Quick Switcher */}
           <div className="flex gap-2">
-            {(['1:1', '4:3', '3:4', '16:9', '9:16'] as const).map((format) => (
+            {FORMATS.map((format) => (
               <button
                 key={format}
                 onClick={() => updateConfig({ format })}
@@ -69,15 +72,15 @@ export function PreviewCanvas({ config, updateConfig }: PreviewCanvasProps) {
         <div className="relative flex justify-center items-center" style={{ minHeight: '620px' }}>
           <div className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-blue-500/20 rounded-3xl blur-xl" />
           <div
-            className="relative bg-black/40 backdrop-blur-sm rounded-2xl border-2 border-cyan-500/50 overflow-hidden shadow-2xl"
-            style={{ width: `${mainPreview.width}px`, height: `${mainPreview.height}px` }}
+            className="relative rounded-2xl border-2 border-cyan-500/50 overflow-hidden shadow-2xl"
+            style={{ width: mainPreview.width, height: mainPreview.height }}
           >
             <div
               style={{
                 transform: `scale(${mainPreview.scale})`,
                 transformOrigin: 'top left',
-                width: `${(1 / mainPreview.scale) * 100}%`,
-                height: `${(1 / mainPreview.scale) * 100}%`,
+                width: FORMAT_DIMENSIONS[config.format].width,
+                height: FORMAT_DIMENSIONS[config.format].height,
               }}
             >
               <PostingGraphic config={config} />
@@ -86,18 +89,26 @@ export function PreviewCanvas({ config, updateConfig }: PreviewCanvasProps) {
         </div>
 
         {/* Mini Previews */}
-        <div className="mt-8 grid grid-cols-5 gap-3">
-          {(['1:1', '4:3', '3:4', '16:9', '9:16'] as const).map((format) => {
-            const dims = getMiniDimensions(format)
+        <div className="mt-8 flex gap-4 justify-center flex-wrap">
+          {FORMATS.map((format) => {
+            const mini = getMiniScale(format)
+            const { width: fw, height: fh } = FORMAT_DIMENSIONS[format]
             return (
-              <div key={format}>
-                <p className="text-xs text-gray-400 mb-2 text-center">{format}</p>
+              <div key={format} className="flex flex-col items-center gap-1">
+                <p className="text-xs text-gray-400">{format}</p>
                 <div
-                  className="relative bg-black/20 rounded-lg border border-white/10 overflow-hidden mx-auto cursor-pointer hover:border-cyan-500/50 transition-all"
-                  style={{ width: `${dims.width}px`, height: `${dims.height}px` }}
+                  className="relative rounded border border-white/10 overflow-hidden cursor-pointer hover:border-cyan-500/50 transition-all"
+                  style={{ width: mini.width, height: mini.height }}
                   onClick={() => updateConfig({ format })}
                 >
-                  <div style={{ transform: 'scale(0.08)', transformOrigin: 'top left', width: '1250%', height: '1250%' }}>
+                  <div
+                    style={{
+                      transform: `scale(${mini.scale})`,
+                      transformOrigin: 'top left',
+                      width: fw,
+                      height: fh,
+                    }}
+                  >
                     <PostingGraphic config={{ ...config, format }} />
                   </div>
                 </div>
@@ -107,13 +118,44 @@ export function PreviewCanvas({ config, updateConfig }: PreviewCanvasProps) {
         </div>
       </div>
 
-      {/* Hidden export containers */}
-      <div className="fixed -top-[9999px] -left-[9999px] pointer-events-none">
-        {(['1:1', '4:3', '3:4', '16:9', '9:16'] as const).map((format) => (
-          <div key={format} id={`export-${format}`}>
-            <PostingGraphic config={{ ...config, format }} forExport={true} />
-          </div>
-        ))}
+      {/*
+        Export containers: positioned absolute far off-screen (not fixed!),
+        at exact native resolution with no transform scale.
+        html2canvas captures them pixel-perfect.
+      */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: '-99999px',
+          width: 0,
+          height: 0,
+          overflow: 'visible',
+          pointerEvents: 'none',
+          zIndex: -1,
+        }}
+      >
+        {FORMATS.map((format) => {
+          const { width, height } = FORMAT_DIMENSIONS[format]
+          return (
+            <div
+              key={format}
+              id={`export-${format}`}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width,
+                height,
+                overflow: 'hidden',
+                // no transform, no scale — native resolution
+              }}
+            >
+              <PostingGraphic config={{ ...config, format }} forExport={true} />
+            </div>
+          )
+        })}
       </div>
     </div>
   )
