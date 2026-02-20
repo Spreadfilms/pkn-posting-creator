@@ -183,37 +183,69 @@ function Pill({ label, config }: { label: string; config: PostingConfig }) {
   )
 }
 
+/** Parse "#rrggbb" → [r, g, b] */
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+}
+
+/** Interpolate two hex colors at t ∈ [0,1] */
+function lerpColor(a: string, b: string, t: number): string {
+  const [ar, ag, ab] = hexToRgb(a)
+  const [br, bg, bb] = hexToRgb(b)
+  const r = Math.round(ar + (br - ar) * t)
+  const g = Math.round(ag + (bg - ag) * t)
+  const bl = Math.round(ab + (bb - ab) * t)
+  return `rgb(${r},${g},${bl})`
+}
+
 function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | 'secondary'; config: PostingConfig }) {
   const primary = config.brandSettings.primaryColor
   const secondary = config.brandSettings.secondaryColor
   const isPrimary = mode === 'primary'
 
-  // Outer div uses alignSelf:flex-start to prevent flex-column stretching.
-  // Inner div uses display:table — html2canvas resolves gradient width correctly
-  // for table layout, unlike inline-flex where fit-content confuses the renderer.
+  // html2canvas cannot reliably render CSS linear-gradient on flex/inline elements.
+  // We simulate the gradient with a stack of thin vertical <div> slices so that
+  // each slice has a solid backgroundColor — which html2canvas always renders correctly.
+  const SLICES = 32
+  const gradientSlices = isPrimary
+    ? Array.from({ length: SLICES }, (_, i) => lerpColor(primary, secondary, i / (SLICES - 1)))
+    : null
+
   return (
-    <div style={{ alignSelf: 'flex-start' }}>
-      <div style={{
-        display: 'table',
-        borderRadius: 12,
-        background: isPrimary
-          ? `linear-gradient(to right, ${primary} 0%, ${secondary} 100%)`
-          : 'rgba(255,255,255,0.12)',
-        border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
-      }}>
-        <div style={{
-          display: 'table-cell',
-          verticalAlign: 'middle',
-          padding: '16px 32px',
-          fontWeight: 700,
-          fontSize: 18,
-          color: '#ffffff',
-          whiteSpace: 'nowrap',
-        }}>
-          {label}
-          <span style={{ display: 'inline-block', width: 12 }} />
-          →
+    <div style={{
+      alignSelf: 'flex-start',
+      display: 'inline-flex',
+      position: 'relative',
+      borderRadius: 12,
+      overflow: 'hidden',
+      border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
+    }}>
+      {/* Gradient background: solid-color slices */}
+      {gradientSlices ? (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'row' }}>
+          {gradientSlices.map((color, i) => (
+            <div key={i} style={{ flex: 1, backgroundColor: color }} />
+          ))}
         </div>
+      ) : (
+        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.12)' }} />
+      )}
+      {/* Label on top */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '16px 32px',
+        fontWeight: 700,
+        fontSize: 18,
+        color: '#ffffff',
+        whiteSpace: 'nowrap',
+      }}>
+        {label}
+        <ArrowRight style={{ width: 20, height: 20, flexShrink: 0 }} />
       </div>
     </div>
   )
