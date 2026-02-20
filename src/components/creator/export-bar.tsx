@@ -23,17 +23,19 @@ async function captureFormat(format: Format): Promise<string> {
 
   // Build a map: element index → pixel width, for all elements with a gradient background
   const gradientWidths = new Map<number, number>()
-  const allEls = Array.from(element.querySelectorAll<HTMLElement>('*'))
-  allEls.forEach((el, i) => {
-    const cs = window.getComputedStyle(el)
-    const bg = cs.backgroundImage
-    if (bg && bg.includes('gradient')) {
-      const rect = el.getBoundingClientRect()
-      if (rect.width > 0) gradientWidths.set(i, rect.width)
-    }
-  })
-
-  element.style.visibility = 'hidden' // hide again
+  try {
+    const allEls = Array.from(element.querySelectorAll<HTMLElement>('*'))
+    allEls.forEach((el, i) => {
+      const cs = window.getComputedStyle(el)
+      const bg = cs.backgroundImage
+      if (bg && bg.includes('gradient')) {
+        const r = el.getBoundingClientRect()
+        if (r.width > 0) gradientWidths.set(i, r.width)
+      }
+    })
+  } finally {
+    element.style.visibility = 'hidden' // always hide again, even if measuring fails
+  }
 
   // Dynamically import html2canvas
   const { default: html2canvas } = await import('html2canvas')
