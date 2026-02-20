@@ -187,28 +187,34 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
   const primary = config.brandSettings.primaryColor
   const secondary = config.brandSettings.secondaryColor
   const isPrimary = mode === 'primary'
+
+  // Outer div uses alignSelf:flex-start to prevent flex-column stretching.
+  // Inner div uses display:table — html2canvas resolves gradient width correctly
+  // for table layout, unlike inline-flex where fit-content confuses the renderer.
   return (
-    <div style={{
-      display: 'inline-flex',
-      alignSelf: 'flex-start',
-      width: 'fit-content',
-      alignItems: 'center',
-      gap: 12,
-      padding: '16px 32px',
-      borderRadius: 12,
-      fontWeight: 700,
-      fontSize: 18,
-      color: '#ffffff',
-      background: isPrimary
-        ? `linear-gradient(135deg, ${primary} 0%, ${secondary} 100%)`
-        : 'rgba(255,255,255,0.12)',
-      border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
-      boxShadow: isPrimary ? `0 10px 40px ${primary}50` : 'none',
-      cursor: 'default',
-      whiteSpace: 'nowrap',
-    }}>
-      {label}
-      <ArrowRight style={{ width: 20, height: 20, flexShrink: 0 }} />
+    <div style={{ alignSelf: 'flex-start' }}>
+      <div style={{
+        display: 'table',
+        borderRadius: 12,
+        background: isPrimary
+          ? `linear-gradient(to right, ${primary} 0%, ${secondary} 100%)`
+          : 'rgba(255,255,255,0.12)',
+        border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
+      }}>
+        <div style={{
+          display: 'table-cell',
+          verticalAlign: 'middle',
+          padding: '16px 32px',
+          fontWeight: 700,
+          fontSize: 18,
+          color: '#ffffff',
+          whiteSpace: 'nowrap',
+        }}>
+          {label}
+          <span style={{ display: 'inline-block', width: 12 }} />
+          →
+        </div>
+      </div>
     </div>
   )
 }
