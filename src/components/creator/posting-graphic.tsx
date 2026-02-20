@@ -183,91 +183,42 @@ function Pill({ label, config }: { label: string; config: PostingConfig }) {
   )
 }
 
-/** Parse "#rrggbb" → { r, g, b } */
-function hexToRgb(hex: string) {
-  const h = hex.replace('#', '')
-  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }
-}
-
-/** Mix color c with white at ratio t (0=original, 1=white) */
-function lightenColor(hex: string, t: number): string {
-  const { r, g, b } = hexToRgb(hex)
-  const lr = Math.round(r + (255 - r) * t)
-  const lg = Math.round(g + (255 - g) * t)
-  const lb = Math.round(b + (255 - b) * t)
-  return `rgb(${lr},${lg},${lb})`
-}
-
 function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | 'secondary'; config: PostingConfig }) {
   const primary = config.brandSettings.primaryColor
   const secondary = config.brandSettings.secondaryColor
   const isPrimary = mode === 'primary'
 
-  // For the button gradient end-color: if secondary is very dark (luminance < 0.1),
-  // use a lightened version so the gradient stays visible and colorful.
-  const getButtonEndColor = () => {
-    const { r, g, b } = hexToRgb(secondary)
-    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
-    if (luminance < 0.15) {
-      // Secondary is near-black — use a mid-blue instead for a better button gradient
-      return '#2563eb'
-    }
-    return secondary
+  // If secondary is near-black (luminance < 0.15), use #2563eb for the gradient
+  // end so the button always shows a visible, colorful Cyan→Blue gradient.
+  const getEndColor = () => {
+    const h = secondary.replace('#', '')
+    const r = parseInt(h.slice(0, 2), 16)
+    const g = parseInt(h.slice(2, 4), 16)
+    const b = parseInt(h.slice(4, 6), 16)
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.15 ? '#2563eb' : secondary
   }
-
-  const endColor = getButtonEndColor()
-
-  // html2canvas doesn't reliably render CSS linear-gradient on inline-flex elements
-  // with fit-content width. We use 200 thin solid-color slices as a workaround —
-  // solid backgroundColor renders correctly at any width in html2canvas.
-  const SLICES = 200
-  const gradientSlices = isPrimary
-    ? Array.from({ length: SLICES }, (_, i) => {
-        const t = i / (SLICES - 1)
-        const a = hexToRgb(primary)
-        const b2 = hexToRgb(endColor)
-        const r = Math.round(a.r + (b2.r - a.r) * t)
-        const g = Math.round(a.g + (b2.g - a.g) * t)
-        const bl = Math.round(a.b + (b2.b - a.b) * t)
-        return `rgb(${r},${g},${bl})`
-      })
-    : null
 
   return (
     <div style={{
-      alignSelf: 'flex-start',
       display: 'inline-flex',
-      position: 'relative',
+      alignSelf: 'flex-start',
+      width: 'fit-content',
+      alignItems: 'center',
+      gap: 12,
+      padding: '16px 32px',
       borderRadius: 12,
-      overflow: 'hidden',
+      fontWeight: 700,
+      fontSize: 18,
+      color: '#ffffff',
+      background: isPrimary
+        ? `linear-gradient(to right, ${primary} 0%, ${getEndColor()} 100%)`
+        : 'rgba(255,255,255,0.12)',
       border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
+      cursor: 'default',
+      whiteSpace: 'nowrap',
     }}>
-      {/* Gradient background: 200 solid-color slices — invisible seams, correct colors */}
-      {gradientSlices ? (
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'row' }}>
-          {gradientSlices.map((color, i) => (
-            <div key={i} style={{ flex: 1, backgroundColor: color }} />
-          ))}
-        </div>
-      ) : (
-        <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(255,255,255,0.12)' }} />
-      )}
-      {/* Label on top */}
-      <div style={{
-        position: 'relative',
-        zIndex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '16px 32px',
-        fontWeight: 700,
-        fontSize: 18,
-        color: '#ffffff',
-        whiteSpace: 'nowrap',
-      }}>
-        {label}
-        <ArrowRight style={{ width: 20, height: 20, flexShrink: 0 }} />
-      </div>
+      {label}
+      <ArrowRight style={{ width: 20, height: 20, flexShrink: 0 }} />
     </div>
   )
 }

@@ -36,7 +36,7 @@ async function captureFormat(format: Format): Promise<string> {
     useCORS: true,
     allowTaint: true,
     imageTimeout: 15000,
-    onclone: (_clonedDoc, clonedEl) => {
+    onclone: (clonedDoc, clonedEl) => {
       // Make the cloned element visible (it's hidden in the live DOM)
       clonedEl.style.visibility = 'visible'
       // Lock size so nothing reflows
@@ -46,6 +46,29 @@ async function captureFormat(format: Format): Promise<string> {
       clonedEl.style.position = 'fixed'
       clonedEl.style.top = '0'
       clonedEl.style.left = '0'
+
+      // Fix: html2canvas misreads CSS linear-gradient width on inline-flex/fit-content
+      // elements. Find all such elements in the clone and lock their computed width.
+      const originalEl = document.getElementById(`export-${format}`)
+      if (originalEl) {
+        const allOriginal = Array.from(originalEl.querySelectorAll<HTMLElement>('*'))
+        const allCloned = Array.from(clonedEl.querySelectorAll<HTMLElement>('*'))
+        allOriginal.forEach((orig, i) => {
+          const clone = allCloned[i]
+          if (!clone) return
+          const cs = window.getComputedStyle(orig)
+          const bg = cs.backgroundImage || cs.background
+          // If element has a gradient background, lock its width so html2canvas
+          // calculates gradient stops against the correct pixel dimension
+          if (bg && bg.includes('gradient')) {
+            const rect = orig.getBoundingClientRect()
+            if (rect.width > 0) {
+              clone.style.width = `${rect.width}px`
+              clone.style.flexShrink = '0'
+            }
+          }
+        })
+      }
     },
   })
 
