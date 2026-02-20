@@ -183,20 +183,19 @@ function Pill({ label, config }: { label: string; config: PostingConfig }) {
   )
 }
 
-/** Parse "#rrggbb" → [r, g, b] */
-function hexToRgb(hex: string): [number, number, number] {
+/** Parse "#rrggbb" → { r, g, b } */
+function hexToRgb(hex: string) {
   const h = hex.replace('#', '')
-  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)]
+  return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) }
 }
 
-/** Interpolate two hex colors at t ∈ [0,1] */
-function lerpColor(a: string, b: string, t: number): string {
-  const [ar, ag, ab] = hexToRgb(a)
-  const [br, bg, bb] = hexToRgb(b)
-  const r = Math.round(ar + (br - ar) * t)
-  const g = Math.round(ag + (bg - ag) * t)
-  const bl = Math.round(ab + (bb - ab) * t)
-  return `rgb(${r},${g},${bl})`
+/** Mix color c with white at ratio t (0=original, 1=white) */
+function lightenColor(hex: string, t: number): string {
+  const { r, g, b } = hexToRgb(hex)
+  const lr = Math.round(r + (255 - r) * t)
+  const lg = Math.round(g + (255 - g) * t)
+  const lb = Math.round(b + (255 - b) * t)
+  return `rgb(${lr},${lg},${lb})`
 }
 
 function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | 'secondary'; config: PostingConfig }) {
@@ -204,12 +203,34 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
   const secondary = config.brandSettings.secondaryColor
   const isPrimary = mode === 'primary'
 
-  // html2canvas cannot reliably render CSS linear-gradient on flex/inline elements.
-  // We simulate the gradient with a stack of thin vertical <div> slices so that
-  // each slice has a solid backgroundColor — which html2canvas always renders correctly.
-  const SLICES = 32
+  // For the button gradient end-color: if secondary is very dark (luminance < 0.1),
+  // use a lightened version so the gradient stays visible and colorful.
+  const getButtonEndColor = () => {
+    const { r, g, b } = hexToRgb(secondary)
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+    if (luminance < 0.15) {
+      // Secondary is near-black — use a mid-blue instead for a better button gradient
+      return '#2563eb'
+    }
+    return secondary
+  }
+
+  const endColor = getButtonEndColor()
+
+  // html2canvas doesn't reliably render CSS linear-gradient on inline-flex elements
+  // with fit-content width. We use 200 thin solid-color slices as a workaround —
+  // solid backgroundColor renders correctly at any width in html2canvas.
+  const SLICES = 200
   const gradientSlices = isPrimary
-    ? Array.from({ length: SLICES }, (_, i) => lerpColor(primary, secondary, i / (SLICES - 1)))
+    ? Array.from({ length: SLICES }, (_, i) => {
+        const t = i / (SLICES - 1)
+        const a = hexToRgb(primary)
+        const b2 = hexToRgb(endColor)
+        const r = Math.round(a.r + (b2.r - a.r) * t)
+        const g = Math.round(a.g + (b2.g - a.g) * t)
+        const bl = Math.round(a.b + (b2.b - a.b) * t)
+        return `rgb(${r},${g},${bl})`
+      })
     : null
 
   return (
@@ -221,7 +242,7 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
       overflow: 'hidden',
       border: isPrimary ? 'none' : '1px solid rgba(255,255,255,0.3)',
     }}>
-      {/* Gradient background: solid-color slices */}
+      {/* Gradient background: 200 solid-color slices — invisible seams, correct colors */}
       {gradientSlices ? (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'row' }}>
           {gradientSlices.map((color, i) => (
