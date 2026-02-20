@@ -15,6 +15,26 @@ async function captureFormat(format: Format): Promise<string> {
   const element = document.getElementById(`export-${format}`)
   if (!element) throw new Error(`Export element not found: export-${format}`)
 
+  // Briefly make the element visible so getBoundingClientRect() returns real dimensions.
+  // We need to measure gradient elements' widths BEFORE html2canvas clones the DOM,
+  // because visibility:hidden causes getBoundingClientRect to return 0.
+  element.style.visibility = 'visible'
+  await new Promise((r) => requestAnimationFrame(r)) // one paint frame so layout is computed
+
+  // Build a map: element index → pixel width, for all elements with a gradient background
+  const gradientWidths = new Map<number, number>()
+  const allEls = Array.from(element.querySelectorAll<HTMLElement>('*'))
+  allEls.forEach((el, i) => {
+    const cs = window.getComputedStyle(el)
+    const bg = cs.backgroundImage
+    if (bg && bg.includes('gradient')) {
+      const rect = el.getBoundingClientRect()
+      if (rect.width > 0) gradientWidths.set(i, rect.width)
+    }
+  })
+
+  element.style.visibility = 'hidden' // hide again
+
   // Dynamically import html2canvas
   const { default: html2canvas } = await import('html2canvas')
 
@@ -22,11 +42,8 @@ async function captureFormat(format: Format): Promise<string> {
     scale: 1,
     width,
     height,
-    // Match window dimensions exactly to the element so html2canvas
-    // does not apply any viewport-based rescaling or text reflowing
     windowWidth: width,
     windowHeight: height,
-    // Element is at position fixed top:0 left:0 — no scroll offset
     x: 0,
     y: 0,
     scrollX: 0,
@@ -36,10 +53,8 @@ async function captureFormat(format: Format): Promise<string> {
     useCORS: true,
     allowTaint: true,
     imageTimeout: 15000,
-    onclone: (clonedDoc, clonedEl) => {
-      // Make the cloned element visible (it's hidden in the live DOM)
+    onclone: (_clonedDoc, clonedEl) => {
       clonedEl.style.visibility = 'visible'
-      // Lock size so nothing reflows
       clonedEl.style.width = `${width}px`
       clonedEl.style.height = `${height}px`
       clonedEl.style.overflow = 'hidden'
@@ -47,25 +62,16 @@ async function captureFormat(format: Format): Promise<string> {
       clonedEl.style.top = '0'
       clonedEl.style.left = '0'
 
-      // Fix: html2canvas misreads CSS linear-gradient width on inline-flex/fit-content
-      // elements. Find all such elements in the clone and lock their computed width.
-      const originalEl = document.getElementById(`export-${format}`)
-      if (originalEl) {
-        const allOriginal = Array.from(originalEl.querySelectorAll<HTMLElement>('*'))
-        const allCloned = Array.from(clonedEl.querySelectorAll<HTMLElement>('*'))
-        allOriginal.forEach((orig, i) => {
-          const clone = allCloned[i]
-          if (!clone) return
-          const cs = window.getComputedStyle(orig)
-          const bg = cs.backgroundImage || cs.background
-          // If element has a gradient background, lock its width so html2canvas
-          // calculates gradient stops against the correct pixel dimension
-          if (bg && bg.includes('gradient')) {
-            const rect = orig.getBoundingClientRect()
-            if (rect.width > 0) {
-              clone.style.width = `${rect.width}px`
-              clone.style.flexShrink = '0'
-            }
+      // Apply pre-measured pixel widths to gradient elements in the clone
+      // so html2canvas computes gradient color stops against the correct size.
+      if (gradientWidths.size > 0) {
+        const clonedEls = Array.from(clonedEl.querySelectorAll<HTMLElement>('*'))
+        gradientWidths.forEach((w, i) => {
+          const el = clonedEls[i]
+          if (el) {
+            el.style.width = `${w}px`
+            el.style.flexShrink = '0'
+            el.style.minWidth = `${w}px`
           }
         })
       }
