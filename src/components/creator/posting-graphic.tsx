@@ -218,7 +218,8 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
       whiteSpace: 'nowrap',
     }}>
       {label}
-      <ArrowRight style={{ width: 20, height: 20, flexShrink: 0 }} />
+      {/* Unicode arrow — SVG icons are not reliably rendered by html2canvas */}
+      <span style={{ fontSize: 18, lineHeight: 1, flexShrink: 0 }}>→</span>
     </div>
   )
 }
