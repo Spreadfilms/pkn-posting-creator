@@ -64,7 +64,7 @@ export function CreatorSidebar({ config, updateConfig }: CreatorSidebarProps) {
 
   return (
     <div className="w-[400px] min-w-[400px] border-r border-white/10 bg-black/20 backdrop-blur-xl overflow-y-auto">
-      <div className="p-4 space-y-3">
+      <div className="p-4 pb-24 space-y-3">
         {/* Brand / CI */}
         <Section
           title="0. Brand / CI"
@@ -105,7 +105,15 @@ export function CreatorSidebar({ config, updateConfig }: CreatorSidebarProps) {
               <Input
                 id="headline"
                 value={config.headline}
-                onChange={(e) => updateConfig({ headline: e.target.value })}
+                onChange={(e) => {
+                  const newHeadline = e.target.value
+                  const updates: Partial<PostingConfig> = { headline: newHeadline }
+                  // If highlightWord no longer exists in the new headline, clear it
+                  if (config.highlightEnabled && config.highlightWord && !newHeadline.includes(config.highlightWord)) {
+                    updates.highlightWord = ''
+                  }
+                  updateConfig(updates)
+                }}
                 className="mt-2 bg-white/5 border-white/20 text-white placeholder-gray-600"
                 placeholder="Deine Headline..."
               />
@@ -200,7 +208,11 @@ export function CreatorSidebar({ config, updateConfig }: CreatorSidebarProps) {
                 <Label className="text-gray-300">Statistics</Label>
                 <Toggle
                   checked={config.statsMode !== 'off'}
-                  onChange={(v) => updateConfig({ statsMode: v ? 'one' : 'off' })}
+                  onChange={(v) => updateConfig({
+                    statsMode: v ? 'one' : 'off',
+                    // Auto-switch to Statistics post type when enabling
+                    ...(v && config.postType !== 'stat' ? { postType: 'stat' } : {}),
+                  })}
                 />
               </div>
               {config.statsMode !== 'off' && (
