@@ -268,7 +268,7 @@ export function CreatorSidebar({ config, updateConfig }: CreatorSidebarProps) {
                   {/* Clickable word chips from the current headline */}
                   {config.headline && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {[...new Set(config.headline.split(/\s+/).filter((w) => w.length > 1))].map((word) => (
+                      {Array.from(new Set(config.headline.split(/\s+/).filter((w) => w.length > 1))).map((word) => (
                         <button
                           key={word}
                           onClick={() => updateConfig({ highlightWord: word })}
