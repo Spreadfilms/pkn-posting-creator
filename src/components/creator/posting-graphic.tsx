@@ -10,6 +10,10 @@ interface PostingGraphicProps {
   forExport?: boolean
 }
 
+// Context so HeadlineText knows whether it's rendering for export (no gradient text)
+// or for live preview (full CSS gradient text).
+const ExportContext = React.createContext(false)
+
 // Deterministic star positions — NO Math.random, same output every call
 function generateStarPositions(count: number) {
   const stars: { top: string; left: string; opacity: number }[] = []
@@ -41,104 +45,106 @@ export function PostingGraphic({ config, forExport = false }: PostingGraphicProp
   const stars = generateStarPositions(starCount)
 
   return (
-    <div
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        width,
-        height,
-        fontFamily,
-        background: 'linear-gradient(135deg, #0a0118 0%, #1a0a2e 50%, #0a0118 100%)',
-        flexShrink: 0,
-      }}
-    >
-      {/* Space background — stars */}
-      {config.spaceBackgroundEnabled && stars.map((star, i) => (
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            width: 4,
-            height: 4,
-            borderRadius: '50%',
-            backgroundColor: '#ffffff',
-            top: star.top,
-            left: star.left,
-            opacity: star.opacity,
-          }}
-        />
-      ))}
+    <ExportContext.Provider value={forExport}>
+      <div
+        style={{
+          position: 'relative',
+          overflow: 'hidden',
+          width,
+          height,
+          fontFamily,
+          background: 'linear-gradient(135deg, #0a0118 0%, #1a0a2e 50%, #0a0118 100%)',
+          flexShrink: 0,
+        }}
+      >
+        {/* Gradient overlay */}
+        {activeGradient && (
+          <div style={{ position: 'absolute', inset: 0, background: activeGradient }} />
+        )}
 
-      {/* Glow effects — use box-shadow workaround since blur filter is heavy */}
-      {config.spaceBackgroundEnabled && (
-        <>
-          <div style={{
-            position: 'absolute', top: 0, right: 0,
-            width: '50%', height: '50%',
-            borderRadius: '50%',
-            background: `radial-gradient(circle, rgba(6,182,212,${glowOpacity}) 0%, transparent 70%)`,
-          }} />
-          <div style={{
-            position: 'absolute', bottom: 0, left: 0,
-            width: '50%', height: '50%',
-            borderRadius: '50%',
-            background: `radial-gradient(circle, rgba(37,99,235,${glowOpacity}) 0%, transparent 70%)`,
-          }} />
-          <div style={{
-            position: 'absolute',
-            top: '25%', left: '25%',
-            width: '50%', height: '50%',
-            borderRadius: '50%',
-            background: `radial-gradient(circle, rgba(147,51,234,${glowOpacity * 0.7}) 0%, transparent 70%)`,
-          }} />
-        </>
-      )}
+        {/* Image background */}
+        {activeImage && (
+          <div style={{ position: 'absolute', inset: 0 }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={activeImage}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                filter: `brightness(${1 - config.imageDarken / 100})`,
+              }}
+              crossOrigin="anonymous"
+            />
+            <div style={{
+              position: 'absolute', inset: 0,
+              background: `linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)`,
+              opacity: config.imageDarken / 100,
+            }} />
+          </div>
+        )}
 
-      {/* Gradient overlay */}
-      {activeGradient && (
-        <div style={{ position: 'absolute', inset: 0, background: activeGradient }} />
-      )}
-
-      {/* Image background */}
-      {activeImage && (
-        <div style={{ position: 'absolute', inset: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={activeImage}
-            alt=""
+        {/* Space background — stars rendered AFTER gradient/image so they're always visible */}
+        {config.spaceBackgroundEnabled && stars.map((star, i) => (
+          <div
+            key={i}
             style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              filter: `brightness(${1 - config.imageDarken / 100})`,
+              position: 'absolute',
+              width: 4,
+              height: 4,
+              borderRadius: '50%',
+              backgroundColor: '#ffffff',
+              top: star.top,
+              left: star.left,
+              opacity: star.opacity,
             }}
-            crossOrigin="anonymous"
           />
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: `linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.6) 100%)`,
-            opacity: config.imageDarken / 100,
-          }} />
+        ))}
+
+        {/* Glow effects — rendered after gradient/image, always visible */}
+        {config.spaceBackgroundEnabled && (
+          <>
+            <div style={{
+              position: 'absolute', top: 0, right: 0,
+              width: '50%', height: '50%',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, rgba(6,182,212,${glowOpacity}) 0%, transparent 70%)`,
+            }} />
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0,
+              width: '50%', height: '50%',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, rgba(37,99,235,${glowOpacity}) 0%, transparent 70%)`,
+            }} />
+            <div style={{
+              position: 'absolute',
+              top: '25%', left: '25%',
+              width: '50%', height: '50%',
+              borderRadius: '50%',
+              background: `radial-gradient(circle, rgba(147,51,234,${glowOpacity * 0.7}) 0%, transparent 70%)`,
+            }} />
+          </>
+        )}
+
+        {/* Content */}
+        <div style={{ position: 'relative', zIndex: 10, height: '100%' }}>
+          {config.postType === 'event' && <EventLayout config={config} />}
+          {config.postType === 'announcement' && <AnnouncementLayout config={config} />}
+          {config.postType === 'pure-visual' && <PureVisualLayout config={config} />}
+          {config.postType === 'quote' && <QuoteLayout config={config} />}
+          {config.postType === 'stat' && <StatLayout config={config} />}
+          {config.postType === 'service' && <ServiceLayout config={config} />}
+          {config.postType === 'hiring' && <HiringLayout config={config} />}
+          {config.postType === 'reminder' && <ReminderLayout config={config} />}
+          {config.postType === 'presentation' && <PresentationLayout config={config} />}
+          {config.postType === 'carousel' && <CarouselLayout config={config} />}
         </div>
-      )}
 
-      {/* Content */}
-      <div style={{ position: 'relative', zIndex: 10, height: '100%' }}>
-        {config.postType === 'event' && <EventLayout config={config} />}
-        {config.postType === 'announcement' && <AnnouncementLayout config={config} />}
-        {config.postType === 'pure-visual' && <PureVisualLayout config={config} />}
-        {config.postType === 'quote' && <QuoteLayout config={config} />}
-        {config.postType === 'stat' && <StatLayout config={config} />}
-        {config.postType === 'service' && <ServiceLayout config={config} />}
-        {config.postType === 'hiring' && <HiringLayout config={config} />}
-        {config.postType === 'reminder' && <ReminderLayout config={config} />}
-        {config.postType === 'presentation' && <PresentationLayout config={config} />}
-        {config.postType === 'carousel' && <CarouselLayout config={config} />}
+        {/* Logo */}
+        {config.logoEnabled && <LogoComponent config={config} />}
       </div>
-
-      {/* Logo */}
-      {config.logoEnabled && <LogoComponent config={config} />}
-    </div>
+    </ExportContext.Provider>
   )
 }
 
@@ -225,16 +231,29 @@ function CTAButton({ label, mode, config }: { label: string; mode: 'primary' | '
 }
 
 function HeadlineText({ config, style }: { config: PostingConfig; style?: React.CSSProperties }) {
+  const isExport = React.useContext(ExportContext)
   const primary = config.brandSettings.primaryColor
+
   if (!config.highlightEnabled || !config.highlightWord || !config.headline.includes(config.highlightWord)) {
     return <span style={style}>{config.headline}</span>
   }
   const parts = config.headline.split(config.highlightWord)
+
+  // In export (html2canvas): bg-clip-text is not supported → solid primary color
+  // In preview: real CSS gradient text via WebkitBackgroundClip
+  const highlightStyle: React.CSSProperties = isExport
+    ? { color: primary }
+    : {
+        backgroundImage: `linear-gradient(to right, ${primary}, #2563eb)`,
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        backgroundClip: 'text',
+      }
+
   return (
     <span style={style}>
       {parts[0]}
-      {/* html2canvas doesn't support bg-clip-text, so we use the primary color directly */}
-      <span style={{ color: primary }}>{config.highlightWord}</span>
+      <span style={highlightStyle}>{config.highlightWord}</span>
       {parts.slice(1).join(config.highlightWord)}
     </span>
   )

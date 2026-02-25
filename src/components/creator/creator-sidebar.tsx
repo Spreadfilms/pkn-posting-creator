@@ -263,8 +263,26 @@ export function CreatorSidebar({ config, updateConfig }: CreatorSidebarProps) {
                     value={config.highlightWord}
                     onChange={(e) => updateConfig({ highlightWord: e.target.value })}
                     className="bg-white/5 border-white/20 text-white"
-                    placeholder="IT KOSMOS"
+                    placeholder="Wort eingeben oder unten wählen…"
                   />
+                  {/* Clickable word chips from the current headline */}
+                  {config.headline && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {[...new Set(config.headline.split(/\s+/).filter((w) => w.length > 1))].map((word) => (
+                        <button
+                          key={word}
+                          onClick={() => updateConfig({ highlightWord: word })}
+                          className={`px-2 py-0.5 rounded text-xs font-medium transition-all ${
+                            config.highlightWord === word
+                              ? 'bg-cyan-500 text-white'
+                              : 'bg-white/10 text-gray-400 hover:bg-white/20 hover:text-white'
+                          }`}
+                        >
+                          {word}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <p className="text-xs text-gray-500 mt-2">Wird mit Farbverlauf hervorgehoben</p>
                 </>
               )}
